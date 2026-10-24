@@ -1,7 +1,15 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <title>Testes do wizard</title>
-<!-- Abra no navegador: roda as regras contra os exemplos do manual RPV e percorre o fluxo com o processo de exemplo. -->
+<!--
+  Abra no navegador. A página:
+  1) confere as regras com os exemplos numéricos do Manual RPV;
+  2) percorre todas as etapas com o processo de exemplo (preenchimento manual);
+  3) se o PDF de exemplo estiver em ../processo/, lê os autos, confere os dados extraídos e
+     verifica que todas as etapas podem ser aprovadas sem digitar nada.
+  No Chrome/Edge, a leitura do PDF local exige abrir o navegador com --allow-file-access-from-files
+  (ou servir a pasta por HTTP). Sem o PDF, a parte 3 é pulada.
+-->
 <script>
   window.__erros = [];
   window.onerror = function (m, f, l) { window.__erros.push(m + ' @' + l); };
@@ -12,14 +20,34 @@
 <link rel="stylesheet" href="wizard.css">
 <script src="regras.js"></script>
 <script src="wizard.js"></script>
+<script src="extrator.js"></script>
 <script src="fluxo-rpv.js"></script>
 </head><body><pre id="out" style="font:13px/1.5 Consolas,monospace;padding:16px"></pre>
 <script>
+var PDF_EXEMPLO = '../processo/1007316-75.2025.8.11.0006-1792865859734-3190511-processo.pdf';
 var out = [];
 function ok(nome, cond, info) { out.push((cond ? 'PASS ' : 'FAIL ') + nome + (info !== undefined ? '  -> ' + JSON.stringify(info) : '')); }
+function mostrar() { document.getElementById('out').textContent = out.join('\n'); }
 var R = RegrasPrecatorio;
+
+// Aprova etapa por etapa, como o usuário faria. Devolve o índice em que travou (ou -1).
+function percorrer(prefixo, aoEntrar) {
+  var etapas = WizardPrecatorio.estado().fluxo.etapas;
+  for (var i = 0; i < etapas.length; i++) {
+    if (aoEntrar) aoEntrar(etapas[i]);
+    var aprovar = document.getElementById('pw-aprovar');
+    if (aprovar.disabled) {
+      out.push('FAIL ' + prefixo + ': aprovação bloqueada na etapa ' + (i + 1) + ' — ' + document.querySelector('.pw-validacao').innerText.replace(/\s+/g, ' '));
+      return i;
+    }
+    aprovar.checked = true; aprovar.dispatchEvent(new Event('change'));
+    document.getElementById('pw-avancar').click();
+  }
+  return -1;
+}
+
 try {
-  // Regras isoladas
+  /* 1) Regras */
   var c = R.validarNumeroCnj('1007316-75.2025.8.11.0006'); ok('CNJ válido', c.ok && c.tjmt, c);
   ok('CNJ DV errado', !R.validarNumeroCnj('1007316-74.2025.8.11.0006').ok);
   ok('CPF válido', R.validarCpf('529.982.247-25'));
@@ -40,60 +68,70 @@ try {
   var tc2 = R.calcularTributos({ valorBruto: 15000, basePrevidencia: 15000, rpps: true, aliquotaPrevidencia: 11, tetoConstitucional: 'TC2', tetoRgps: 6101.06, tipoPessoa: 'F' });
   ok('Manual 3.2.1.2 TC2 previdência 307,77', tc2.previdencia === 307.77, tc2.previdencia);
   var rra = R.calcularTributos({ valorBruto: 3000, rra: true, parcelasRra: 2, tipoPessoa: 'F' });
-  ok('Manual 3.2.2.3 RRA 2 meses IR 0', rra.irrf === 0, rra);
+  ok('Manual 3.2.2.3 RRA 2 meses IR 0', rra.irrf === 0, rra.irrf);
   var alto = R.calcularTributos({ valorBruto: 60000, rra: true, parcelasRra: 6, tipoPessoa: 'F' });
   ok('RRA 60k/6 meses: IR mensal 10k × 6', alto.irrf === R.arred((10000 * 0.275 - 908.73) * 6), alto.irrf);
-  var pj = R.calcularTributos({ valorBruto: 10000, tipoPessoa: 'J' });
-  ok('PJ não Simples 1,5%', pj.irrf === 150, pj.irrf);
+  ok('PJ não Simples 1,5%', R.calcularTributos({ valorBruto: 10000, tipoPessoa: 'J' }).irrf === 150);
   var e = R.enquadrar({ valorAtualizado: 76582.63, tetoRpv: 26336, alimentar: true, preferencial: true });
   ok('Exemplo é precatório', e.tipo === 'PRECATORIO', e);
   ok('Exemplo superpreferência integral', e.superpreferencia === 76582.63 && e.restanteOrdem === 0);
 
-  // Fluxo completo com o processo de exemplo
+  /* 2) Fluxo manual com o exemplo */
   WizardPrecatorio.abrir('rpv_srp');
   document.querySelector('[data-acao="exemplo"]').click();
   var st = WizardPrecatorio.estado();
   st.dados.documento = '529.982.247-25';   // CPF fictício válido, só para o teste
   st.dados.nascimento = '1971-11-11';
-  var etapas = st.fluxo.etapas;
-  for (var i = 0; i < etapas.length; i++) {
-    var titulo = document.getElementById('pw-titulo-etapa').textContent;
-    var val = document.querySelector('.pw-validacao').innerText.replace(/\s+/g, ' ');
-    var painel = document.querySelector('.pw-painel').innerText.replace(/\s+/g, ' ');
-    if (etapas[i].id === 'guias') {
-      var dirf = document.querySelector('[data-id="dirfCiente"]');
-      dirf.checked = true; dirf.dispatchEvent(new Event('change', { bubbles: true }));
-      val = document.querySelector('.pw-validacao').innerText.replace(/\s+/g, ' ');
-      painel = document.querySelector('.pw-form').innerText.replace(/\s+/g, ' ');
-    }
-    if (etapas[i].revisao) {
-      var resp = document.querySelector('[data-id="responsavel"]');
-      resp.value = 'Teste automatizado'; resp.dispatchEvent(new Event('input', { bubbles: true }));
-      val = document.querySelector('.pw-validacao').innerText.replace(/\s+/g, ' ');
-    }
-    out.push('\n=== Etapa ' + (i + 1) + ': ' + titulo + ' ===');
-    out.push('VALIDAÇÃO: ' + val);
-    if (painel) out.push('PAINEL: ' + painel.slice(0, 700));
-    var aprovar = document.getElementById('pw-aprovar');
-    if (aprovar.disabled) { out.push('FAIL aprovação bloqueada na etapa ' + (i + 1)); break; }
-    aprovar.checked = true; aprovar.dispatchEvent(new Event('change'));
-    var av = document.getElementById('pw-avancar');
-    ok('Avançar habilitado após aprovar (etapa ' + (i + 1) + ')', !av.disabled);
-    av.click();
-  }
-  ok('Análise concluída', !!WizardPrecatorio.estado().concluida);
-  var sintese = document.querySelector('.pw-sintese');
-  out.push('SÍNTESE: ' + (sintese ? sintese.innerText.replace(/\s+/g, ' ') : '—'));
-
-  // Edição após aprovação deve invalidar etapas seguintes
-  document.querySelector('[data-ir="1"]').click();
+  ok('Fluxo tem 10 etapas, começando pelo anexo', st.fluxo.etapas.length === 10 && st.fluxo.etapas[0].id === 'anexo');
+  ok('Fluxo manual: todas as etapas aprovadas', percorrer('Fluxo manual') === -1);
+  ok('Fluxo manual: análise concluída', !!WizardPrecatorio.estado().concluida);
+  document.querySelector('[data-ir="2"]').click();
   var num = document.querySelector('[data-id="numero"]');
   num.value = '1007316-74.2025.8.11.0006'; num.dispatchEvent(new Event('input', { bubbles: true }));
-  ok('Edição desaprova etapa e seguintes', !WizardPrecatorio.estado().aprovadas.processo && !WizardPrecatorio.estado().aprovadas.revisao && !WizardPrecatorio.estado().concluida);
+  ok('Edição desaprova etapa e seguintes', !WizardPrecatorio.estado().aprovadas.processo && !WizardPrecatorio.estado().concluida);
   ok('DV inválido bloqueia aprovação', document.getElementById('pw-aprovar').disabled);
-  ok('Etapas seguintes bloqueadas no stepper', document.querySelector('[data-ir="3"]').disabled);
+  ok('Etapas seguintes bloqueadas no stepper', document.querySelector('[data-ir="4"]').disabled);
   WizardPrecatorio.fechar();
 } catch (err) { out.push('EXCEPTION ' + err.message + '\n' + err.stack); }
-out.push('\nJS errors: ' + JSON.stringify(window.__erros));
-document.getElementById('out').textContent = out.join('\n');
+mostrar();
+
+/* 3) Leitura automática do PDF de exemplo */
+function terminar() { out.push('\nJS errors: ' + JSON.stringify(window.__erros)); out.push('FIM'); mostrar(); }
+var xhr = new XMLHttpRequest();
+xhr.open('GET', PDF_EXEMPLO);
+xhr.responseType = 'arraybuffer';
+xhr.onerror = function () { out.push('SKIP PDF de exemplo indisponível (' + PDF_EXEMPLO + ')'); terminar(); };
+xhr.onload = function () {
+  if (!xhr.response || !xhr.response.byteLength) { xhr.onerror(); return; }
+  out.push('\n--- Leitura automática do PDF ---');
+  var t0 = Date.now();
+  ExtratorProcesso.processar(xhr.response).then(function (d) {
+    out.push('Lido em ' + (Date.now() - t0) + ' ms, ' + d._analise.arquivo.paginas + ' páginas, ' + d._analise.camposPreenchidos + ' campos com evidência');
+    var esperado = {
+      numero: '1007316-75.2025.8.11.0006', juizoOrigem: 'Juizados Especiais de Cáceres', enteDevedor: 'estado_mt', natureza: 'alimentar',
+      dataTransito: '2026-07-14', dataLiquidacao: '2026-07-03', valorLiquidacao: '76.582,63', indiceHomologado: 'IPCA-E+SELIC',
+      tipoPessoa: 'F', servidorPublico: 'S', doencaGrave: 'S', rra: 'S', parcelasRra: '23', isencaoMolestia: 'S', laudoJuntado: 'S',
+      rpps: 'N', tetoRpv: '26.336,00', possuiOficio: 'N', honorariosContratuais: 'N', doc_contrato: false
+    };
+    Object.keys(esperado).forEach(function (k) { ok('PDF → ' + k, d[k] === esperado[k], d[k]); });
+    ok('PDF → CPF do credor com DV válido', R.validarCpf(d.documento));
+    ok('PDF → advogado com OAB', d.advogados && d.advogados[0] && !!d.advogados[0].oab);
+    ok('PDF → evidência com ID do documento', /^ID \d+/.test(d._evidencias.dataTransito.fonte), d._evidencias.dataTransito.fonte);
+    ok('PDF → nenhum dado essencial faltando', d._analise.faltando.length === 0, d._analise.faltando);
+    ok('PDF → 5 inconsistências dos autos detectadas', d._analise.achados.length === 5, d._analise.achados);
+
+    WizardPrecatorio.abrir('rpv_srp');
+    WizardPrecatorio.aplicarAnalise(d);
+    var pareceres = 0;
+    var travou = percorrer('Fluxo automático', function () { if (document.querySelector('.pw-parecer-card')) pareceres++; });
+    ok('Fluxo automático: todas as etapas aprovadas sem digitar nada', travou === -1);
+    ok('Fluxo automático: parecer exibido em todas as etapas', pareceres === 10, pareceres);
+    ok('Fluxo automático: análise concluída', !!WizardPrecatorio.estado().concluida);
+    var s = document.querySelector('.pw-sintese');
+    out.push('SÍNTESE: ' + (s ? s.innerText.replace(/\s+/g, ' ') : '—'));
+    WizardPrecatorio.fechar();
+    terminar();
+  }).catch(function (err) { out.push('FAIL leitura do PDF: ' + err.message); terminar(); });
+};
+try { xhr.send(); } catch (err) { xhr.onerror(); }
 </script></body></html>

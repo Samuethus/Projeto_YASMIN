@@ -10,8 +10,10 @@
  *     etapas: [{ id, titulo, curto, descricao, manual: {ref, itens[]},
  *                campos: [campo], painel(d, ctx) -> html, validar(d, ctx) -> {erros[], alertas[]},
  *                revisao: true (etapa final) }] }
+ *                parecer(d, ctx, validacao, etapa) -> html (opcional, exibido no topo da lateral),
  * Formato de um campo:
- *   { id, tipo: texto|moeda|numero|data|selecao|simnao|area|checkbox|lista|aviso,
+ *   { id, tipo: texto|moeda|numero|data|selecao|simnao|area|checkbox|lista|aviso|arquivo,
+ *     (arquivo) aceitar, processar(file, progresso(fracao, msg)) -> Promise<dados novos>,
  *     rotulo, ajuda, obrigatorio, opcoes: [{valor, rotulo}], padrao: valor | fn(d),
  *     se: fn(d) -> bool, largura: 'inteira'|'meia'|'terco', colunas: [campo] (para lista) }
  */
@@ -113,16 +115,39 @@
 
   /* ---------- Renderização de campos ---------- */
 
+  // Origem do valor quando ele veio da leitura automática do PDF.
+  function htmlEvidencia(idCampo) {
+    var ev = estado.dados._evidencias && estado.dados._evidencias[idCampo];
+    if (!ev) return '';
+    return '<small class="pw-evidencia" title="' + esc(ev.trecho || '') + '"><b>PDF</b><span>' + esc(ev.fonte || '') +
+      (ev.trecho ? ' — “' + esc(ev.trecho) + '”' : '') + '</span></small>';
+  }
+
+  function classeEvidencia(idCampo, prefixo) {
+    var ev = !prefixo && estado.dados._evidencias && estado.dados._evidencias[idCampo];
+    return ev ? ' extraido' + (ev.editado ? ' editado' : '') : '';
+  }
+
   function htmlCampo(c, valor, prefixo) {
     var id = (prefixo || 'pw-') + c.id;
     var nome = c.id;
-    var ajuda = c.ajuda ? '<small class="pw-ajuda">' + c.ajuda + '</small>' : '';
+    var ajuda = (c.ajuda ? '<small class="pw-ajuda">' + c.ajuda + '</small>' : '') + (prefixo ? '' : htmlEvidencia(c.id));
     var obrig = c.obrigatorio ? ' <span class="pw-obrig" aria-hidden="true">*</span>' : '';
-    var largura = 'pw-l-' + (c.largura || 'inteira');
+    var largura = 'pw-l-' + (c.largura || 'inteira') + classeEvidencia(c.id, prefixo);
     var v = valor == null ? '' : valor;
 
     if (c.tipo === 'aviso') {
       return '<div class="pw-campo ' + largura + ' pw-aviso-campo" data-campo="' + c.id + '">' + (typeof c.html === 'function' ? c.html(estado.dados, ctx()) : c.html) + '</div>';
+    }
+    if (c.tipo === 'arquivo') {
+      var carregado = c.resumo ? c.resumo(estado.dados) : '';
+      return '<div class="pw-campo pw-l-inteira" data-campo="' + c.id + '">' +
+        '<label class="pw-drop' + (carregado ? ' carregado' : '') + '"><input type="file" accept="' + esc(c.aceitar || '') + '" data-arquivo="' + c.id + '">' +
+        '<span class="pw-drop-icone" aria-hidden="true">' + (carregado ? '✓' : 'PDF') + '</span>' +
+        (carregado
+          ? '<strong>' + esc(carregado) + '</strong><small>Arraste ou selecione outro PDF para refazer a análise.</small>'
+          : '<strong>' + c.rotulo + '</strong>' + (c.ajuda ? '<small>' + c.ajuda + '</small>' : '')) + '</label>' +
+        '<div class="pw-leitura" hidden><div class="pw-barra"><span></span></div><small></small></div></div>';
     }
     if (c.tipo === 'checkbox') {
       return '<div class="pw-campo ' + largura + '" data-campo="' + c.id + '"><label class="pw-check"><input type="checkbox" id="' + id + '" data-id="' + nome + '"' + (v ? ' checked' : '') + '><span>' + c.rotulo + obrig + '</span></label>' + ajuda + '</div>';
@@ -163,8 +188,8 @@
           return htmlCampo(col, item[col.id], 'pw-' + c.id + '-' + i + '-');
         }).join('') + '</div></div>';
     }).join('');
-    return '<div class="pw-campo pw-l-inteira" data-campo="' + c.id + '"><span class="pw-rotulo">' + c.rotulo + (c.obrigatorio ? ' <span class="pw-obrig">*</span>' : '') + '</span>' +
-      (c.ajuda ? '<small class="pw-ajuda">' + c.ajuda + '</small>' : '') +
+    return '<div class="pw-campo pw-l-inteira' + classeEvidencia(c.id) + '" data-campo="' + c.id + '"><span class="pw-rotulo">' + c.rotulo + (c.obrigatorio ? ' <span class="pw-obrig">*</span>' : '') + '</span>' +
+      (c.ajuda ? '<small class="pw-ajuda">' + c.ajuda + '</small>' : '') + htmlEvidencia(c.id) +
       '<div class="pw-lista">' + (corpo || '<p class="pw-vazio">Nenhum item adicionado.</p>') + '</div>' +
       '<button type="button" class="pw-btn pw-btn-sec pw-btn-peq" data-acao="adicionar-item" data-lista="' + c.id + '">+ Adicionar ' + esc((c.rotuloItem || 'item').toLowerCase()) + '</button></div>';
   }
@@ -198,7 +223,7 @@
       '<div class="pw-cabecalho-etapa"><span class="pw-eyebrow">Etapa ' + (estado.atual + 1) + ' de ' + estado.fluxo.etapas.length + '</span>' +
       '<h3 id="pw-titulo-etapa" tabindex="-1">' + esc(etapa.titulo) + '</h3>' + (etapa.descricao ? '<p>' + etapa.descricao + '</p>' : '') + '</div>' +
       '<div class="pw-colunas' + (!etapa.manual && !etapa.painel ? ' unica' : '') + '"><form class="pw-form" novalidate><div class="pw-grade">' + campos + '</div></form>' +
-      '<div class="pw-lateral">' + manual + '<div class="pw-painel" aria-live="polite"></div></div></div>' +
+      '<div class="pw-lateral"><div class="pw-parecer" aria-live="polite"></div>' + manual + '<div class="pw-painel" aria-live="polite"></div></div></div>' +
       '<div class="pw-validacao" aria-live="polite"></div>';
 
     atualizarDinamico();
@@ -222,6 +247,10 @@
     painel.hidden = !painel.innerHTML;
 
     var v = validarEtapa(etapa);
+
+    var parecer = el.corpo.querySelector('.pw-parecer');
+    parecer.innerHTML = etapa.parecer ? etapa.parecer(estado.dados, ctx(), v, etapa) || '' : '';
+    parecer.hidden = !parecer.innerHTML;
     var html = '';
     if (v.erros.length) html += '<div class="pw-msg pw-erro"><strong>Pendências que impedem o avanço</strong><ul>' + v.erros.map(function (e) { return '<li>' + e.msg + '</li>'; }).join('') + '</ul></div>';
     if (v.alertas.length) html += '<div class="pw-msg pw-alerta"><strong>Pontos de atenção</strong><ul>' + v.alertas.map(function (e) { return '<li>' + e.msg + '</li>'; }).join('') + '</ul></div>';
@@ -252,14 +281,20 @@
 
   function aoAlterar(ev) {
     var input = ev.target;
+    if (ev.type === 'change' && input.getAttribute('data-arquivo') && input.files && input.files[0]) {
+      processarArquivo(input.getAttribute('data-arquivo'), input.files[0]);
+      return;
+    }
     var id = input.getAttribute('data-id');
     if (!id) return;
     var item = input.closest('.pw-item');
     if (item) {
       var lista = item.getAttribute('data-lista');
       estado.dados[lista][+item.getAttribute('data-indice')][id] = lerCampo(input);
+      marcarEditado(lista, el.corpo.querySelector('[data-campo="' + lista + '"]'));
     } else {
       estado.dados[id] = lerCampo(input);
+      marcarEditado(id, input.closest('[data-campo]'));
     }
     if (estado.aprovadas[estado.fluxo.etapas[estado.atual].id] || estado.concluida) {
       desaprovarAPartirDe(estado.atual);
@@ -267,6 +302,56 @@
     }
     salvar();
     atualizarDinamico();
+  }
+
+  // Valor extraído do PDF e depois corrigido pelo usuário fica sinalizado.
+  function marcarEditado(id, bloco) {
+    var ev = estado.dados._evidencias && estado.dados._evidencias[id];
+    if (!ev || ev.editado) return;
+    ev.editado = true;
+    if (bloco) bloco.classList.add('editado');
+  }
+
+  function processarArquivo(idCampo, arquivo) {
+    var etapa = estado.fluxo.etapas[estado.atual];
+    var campo = etapa.campos.filter(function (c) { return c.id === idCampo; })[0];
+    if (!campo || !campo.processar) return;
+    if (estado.dados._analise && !confirm('Analisar um novo arquivo substitui todos os dados da análise atual. Continuar?')) return;
+
+    var bloco = el.corpo.querySelector('[data-campo="' + idCampo + '"]');
+    var leitura = bloco.querySelector('.pw-leitura');
+    var barra = leitura.querySelector('.pw-barra span');
+    var texto = leitura.querySelector('small');
+    leitura.hidden = false;
+    leitura.classList.remove('erro');
+    bloco.querySelector('.pw-drop').classList.add('ocupado');
+    function progresso(fracao, msg) {
+      barra.style.width = Math.round(fracao * 100) + '%';
+      texto.textContent = msg || '';
+    }
+    progresso(0, 'Abrindo ' + arquivo.name + '…');
+
+    Promise.resolve().then(function () { return campo.processar(arquivo, progresso, ctx()); }).then(function (novos) {
+      estado.dados = novos || {};
+      estado.aprovadas = {};
+      estado.concluida = false;
+      salvar();
+      renderEtapa();
+    }).catch(function (err) {
+      leitura.classList.add('erro');
+      texto.textContent = 'Não foi possível analisar o arquivo: ' + (err && err.message ? err.message : err);
+      bloco.querySelector('.pw-drop').classList.remove('ocupado');
+    });
+  }
+
+  function aoArrastar(ev) {
+    var zona = ev.target.closest && ev.target.closest('.pw-drop');
+    if (!zona) return;
+    ev.preventDefault();
+    zona.classList.toggle('ativo', ev.type === 'dragover');
+    if (ev.type === 'drop' && ev.dataTransfer.files[0]) {
+      processarArquivo(zona.querySelector('input').getAttribute('data-arquivo'), ev.dataTransfer.files[0]);
+    }
   }
 
   function aoSairCampo(ev) {
@@ -439,6 +524,7 @@
     el.corpo.addEventListener('input', aoAlterar);
     el.corpo.addEventListener('change', aoAlterar);
     el.corpo.addEventListener('focusout', aoSairCampo);
+    ['dragover', 'dragleave', 'drop'].forEach(function (t) { el.corpo.addEventListener(t, aoArrastar); });
     el.aprovar.addEventListener('change', aprovar);
     el.voltar.addEventListener('click', function () { irPara(estado.atual - 1); });
     el.avancar.addEventListener('click', avancar);
@@ -486,6 +572,15 @@
       });
     },
     estado: function () { return estado; },
+    // Permite aplicar o resultado de uma análise sem o seletor de arquivo (usado pelos testes).
+    aplicarAnalise: function (dados) {
+      estado.dados = dados || {};
+      estado.aprovadas = {};
+      estado.concluida = false;
+      estado.atual = 0;
+      salvar();
+      renderEtapa();
+    },
     esc: esc
   };
 })(window);

@@ -106,9 +106,91 @@
     return { id: campo.id, tipo: 'simnao', rotulo: campo.rotulo, ajuda: campo.ajuda, obrigatorio: campo.obrigatorio !== false, se: campo.se, largura: campo.largura || 'meia', padrao: campo.padrao };
   }
 
+  /* ---------- Parecer da análise automática (topo da lateral de cada etapa) ---------- */
+
+  function parecerPadrao(d, ctx, v, etapa) {
+    var an = d._analise;
+    if (!an) return '';
+    var itens = an.pareceres[etapa.id] || [];
+    var campos = etapa.campos.filter(function (c) { return c.tipo !== 'aviso' && c.tipo !== 'arquivo'; });
+    var extraidos = campos.filter(function (c) { return d._evidencias && d._evidencias[c.id]; }).length;
+    var conclusao = v.erros.length
+      ? { classe: 'erro', texto: 'Requer complemento: ' + v.erros.length + ' pendência(s) antes da aprovação.' }
+      : v.alertas.length
+        ? { classe: 'alerta', texto: 'Apto para aprovação, com ' + v.alertas.length + ' ponto(s) de atenção.' }
+        : { classe: 'ok', texto: 'Apto para aprovação.' };
+    return '<div class="pw-parecer-card"><div class="pw-parecer-topo"><span class="pw-selo">Parecer</span><span>' +
+      (campos.length ? extraidos + ' de ' + campos.length + ' campos extraídos do PDF' : 'Análise automática') + '</span></div>' +
+      (itens.length ? '<ul>' + itens.map(function (i) { return '<li class="' + i.tipo + '">' + esc(i.msg) + '</li>'; }).join('') + '</ul>' : '') +
+      '<p class="pw-conclusao ' + conclusao.classe + '">' + conclusao.texto + '</p></div>';
+  }
+
   /* ---------- Etapas ---------- */
 
   var etapas = [];
+
+  // 0. Anexo do processo e análise automática
+  etapas.push({
+    id: 'anexo',
+    titulo: 'Anexar o processo',
+    curto: 'Anexo',
+    descricao: 'Anexe os autos completos em PDF, exportados do PJe. O sistema lê todo o arquivo, preenche as informações exigidas pelo Manual RPV e emite um parecer em cada etapa. Sua tarefa é conferir e aprovar.',
+    manual: {
+      ref: 'Como funciona a análise automática',
+      itens: [
+        'O PDF é lido <strong>neste navegador</strong>; o arquivo não é enviado a nenhum servidor.',
+        'Cada campo preenchido mostra o <strong>documento (ID do PJe) e a página</strong> de onde o valor foi extraído.',
+        'Divergências encontradas nos autos aparecem no parecer da etapa correspondente.',
+        'Funciona com PDF com texto, como o exportado pelo PJe. Documentos digitalizados (imagem) precisam de preenchimento manual.',
+        'Você pode corrigir qualquer campo antes de aprovar; a correção fica sinalizada.'
+      ]
+    },
+    campos: [
+      { id: 'arquivoProcesso', tipo: 'arquivo', rotulo: 'Arraste o PDF do processo aqui ou clique para selecionar',
+        ajuda: 'Autos completos exportados do PJe (PDF com texto).', aceitar: '.pdf,application/pdf',
+        resumo: function (d) { return d._analise ? (d._analise.arquivo.nome || 'PDF') + ' — ' + d._analise.arquivo.paginas + ' páginas analisadas' : ''; },
+        processar: function (arquivo, progresso) { return global.ExtratorProcesso.processar(arquivo, progresso); } },
+      { id: 'semAnexo', tipo: 'checkbox', rotulo: 'Prosseguir sem anexar (preenchimento manual)', se: function (d) { return !d._analise; } }
+    ],
+    painel: function (d) {
+      var an = d._analise;
+      if (!an) return '';
+      var a = an.arquivo;
+      var html = tabela('Arquivo analisado', [
+        ['Arquivo', esc(a.nome || '—')],
+        ['Páginas', String(a.paginas)],
+        ['Documentos do PJe identificados', String(an.documentos.length)],
+        ['Campos preenchidos', String(an.camposPreenchidos), true],
+        ['Analisado em', new Date(a.analisadoEm).toLocaleString('pt-BR')]
+      ]);
+      if (an.documentos.length) {
+        html += '<details class="pw-cartao pw-docs"><summary>Documentos dos autos (' + an.documentos.length + ')</summary><table class="pw-tabela">' +
+          an.documentos.map(function (doc) { return '<tr><th>ID ' + esc(doc.id) + '<br><small>' + esc(doc.data) + '</small></th><td>' + esc(doc.descricao) + '</td></tr>'; }).join('') + '</table></details>';
+      }
+      return html;
+    },
+    parecer: function (d, ctx, v) {
+      var an = d._analise;
+      if (!an) return '';
+      var itens = (an.pareceres.anexo || []).slice();
+      if (!an.faltando.length) itens.push({ tipo: 'ok', msg: 'Todas as informações essenciais do manual foram localizadas no PDF.' });
+      an.achados.forEach(function (x) { itens.push({ tipo: 'alerta', msg: x }); });
+      return '<div class="pw-parecer-card"><div class="pw-parecer-topo"><span class="pw-selo">Parecer geral</span><span>' + an.achados.length + ' ponto(s) encontrados nos autos</span></div>' +
+        '<ul>' + itens.map(function (i) { return '<li class="' + i.tipo + '">' + esc(i.msg) + '</li>'; }).join('') + '</ul>' +
+        '<p class="pw-conclusao ' + (v.erros.length ? 'erro' : 'ok') + '">' + (v.erros.length ? 'Leitura incompleta: complete os dados nas etapas seguintes.' : 'Leitura concluída. Siga etapa por etapa conferindo os pareceres e aprovando.') + '</p></div>';
+    },
+    validar: function (d) {
+      var erros = [];
+      var alertas = [];
+      var an = d._analise;
+      if (!an && !d.semAnexo) erros.push('Anexe o PDF do processo ou marque "Prosseguir sem anexar".');
+      if (an) {
+        if (an.arquivo.digitalizado) erros.push('O PDF não tem camada de texto suficiente para a leitura automática. Use o PDF exportado do PJe ou prossiga sem anexar.');
+        an.faltando.forEach(function (f) { alertas.push('Não localizado no PDF: ' + f + '. Preencha na etapa correspondente.'); });
+      }
+      return { erros: erros, alertas: alertas };
+    }
+  });
 
   // 1. Orientações e checagem de documentos
   etapas.push({
@@ -139,15 +221,16 @@
     ],
     painel: function () {
       return tabela('Como a análise está organizada', [
-        ['1', 'Orientações e documentos'],
-        ['2', 'Dados do processo (manual 1.1)'],
-        ['3', 'Credor e advogados (manual 1.1)'],
-        ['4', 'Cálculo homologado (manual 1.2.1)'],
-        ['5', 'Atualização e juros (manual 1.2.2)'],
-        ['6', 'Enquadramento RPV × Precatório (Anexo)'],
-        ['7', 'Tributação (manual 3.2)'],
-        ['8', 'Guias e repasses (manual 2)'],
-        ['9', 'Revisão e aprovação final']
+        ['1', 'Anexo do processo e leitura automática'],
+        ['2', 'Orientações e documentos'],
+        ['3', 'Dados do processo (manual 1.1)'],
+        ['4', 'Credor e advogados (manual 1.1)'],
+        ['5', 'Cálculo homologado (manual 1.2.1)'],
+        ['6', 'Atualização e juros (manual 1.2.2)'],
+        ['7', 'Enquadramento RPV × Precatório (Anexo)'],
+        ['8', 'Tributação (manual 3.2)'],
+        ['9', 'Guias e repasses (manual 2)'],
+        ['10', 'Revisão e aprovação final']
       ]) + nota('Cada etapa só é liberada depois que a anterior estiver <strong>validada</strong> e <strong>aprovada</strong> por você. Os dados ficam salvos neste navegador até você limpar a análise.');
     },
     validar: function (d) {
@@ -640,7 +723,7 @@
       { id: 'guiaPeriodo', tipo: 'texto', rotulo: 'Mês de referência do tributo', placeholder: 'MM/AAAA', largura: 'meia', se: function (d) { return d.enteDevedor === 'estado_mt'; } },
       { id: 'guiaVencimento', tipo: 'data', rotulo: 'Data de vencimento da guia', largura: 'meia' },
       { id: 'guiaEmitida', tipo: 'checkbox', rotulo: 'Guias emitidas ou solicitadas ao ente' },
-      { id: 'dirfCiente', tipo: 'checkbox', rotulo: 'Ciente de que o pagamento deve constar no relatório anual enviado ao ente para a DIRF', obrigatorio: true }
+      { id: 'aviso-dirf', tipo: 'aviso', html: nota('Ao final de cada ano, o pagamento deve constar no relatório enviado ao ente devedor para a DIRF (manual 2.3).') }
     ],
     validar: function (d) {
       var erros = [];
@@ -657,6 +740,8 @@
 
   // 9. Revisão e aprovação final
   function formatarValor(campo, v) {
+    var d = global.WizardPrecatorio.estado().dados;
+    if (campo.tipo === 'arquivo') return d._analise ? esc(d._analise.arquivo.nome || 'PDF analisado') + ' (' + d._analise.arquivo.paginas + ' páginas)' : '<span class="pw-mudo">Sem anexo</span>';
     if (v === undefined || v === null || v === '') return '<span class="pw-mudo">—</span>';
     if (campo.tipo === 'simnao') return v === SIM ? 'Sim' : 'Não';
     if (campo.tipo === 'checkbox') return v ? '✓' : '—';
@@ -677,6 +762,16 @@
     revisao: true,
     descricao: 'Confira o resumo de todas as etapas. A aprovação final registra data e hora e libera a exportação da análise.',
     campos: [
+      { id: 'aviso-parecer-geral', tipo: 'aviso', html: function (d) {
+        var an = d._analise;
+        if (!an) return '';
+        var editados = Object.keys(d._evidencias || {}).filter(function (k) { return d._evidencias[k].editado; });
+        return '<div class="pw-parecer-card largo"><div class="pw-parecer-topo"><span class="pw-selo">Parecer final</span><span>Análise automática de ' + esc(an.arquivo.nome || 'PDF') + '</span></div><ul>' +
+          '<li class="ok">' + an.camposPreenchidos + ' informações extraídas do PDF, cada uma com o documento e a página de origem.</li>' +
+          (editados.length ? '<li class="info">' + editados.length + ' valor(es) extraído(s) corrigido(s) manualmente durante a revisão.</li>' : '') +
+          an.achados.map(function (x) { return '<li class="alerta">' + esc(x) + '</li>'; }).join('') +
+          '</ul></div>';
+      } },
       { id: 'aviso-resultado', tipo: 'aviso', html: function (d) {
         var e = enquadramento(d);
         var t = tributos(d);
@@ -697,23 +792,27 @@
             '<table class="pw-tabela">' + linhas + '</table>' + alertas + '</details>';
         }).join('');
       } },
-      { id: 'responsavel', tipo: 'texto', rotulo: 'Responsável pela análise', obrigatorio: true, largura: 'meia' },
+      { id: 'responsavel', tipo: 'texto', rotulo: 'Responsável pela análise', largura: 'meia' },
       { id: 'obsFinais', tipo: 'area', rotulo: 'Parecer / observações finais' },
       { id: 'aviso-acoes', tipo: 'aviso', html: '<div class="pw-acoes-finais"><button type="button" class="pw-btn pw-btn-sec" data-acao="exportar">Exportar análise (JSON)</button><button type="button" class="pw-btn pw-btn-sec" data-acao="imprimir">Imprimir resumo</button></div>' }
     ],
-    validar: function () {
+    validar: function (d) {
       var erros = [];
       global.WizardPrecatorio.resumo().forEach(function (r) {
         if (!r.aprovada) erros.push('A etapa "' + r.etapa.titulo + '" ainda não foi aprovada.');
         r.validacao.erros.forEach(function (e) { erros.push(r.etapa.titulo + ': ' + e.msg); });
       });
-      return { erros: erros };
+      return { erros: erros, alertas: d.responsavel ? [] : ['Informe o responsável pela análise para registro no parecer.'] };
     }
   });
+
+  // Todas as etapas exibem o parecer da análise automática, salvo as que definem o próprio.
+  etapas.forEach(function (e) { if (!e.parecer && !e.revisao) e.parecer = parecerPadrao; });
 
   /* ---------- Processo de exemplo (autos em processo/, dados pessoais omitidos) ---------- */
 
   var exemplo = {
+    semAnexo: true,
     doc_sentenca: true, doc_transito: true, doc_calculo: true, doc_homologacao: true, doc_procuracao: true,
     doc_credor: true, doc_fichas: true, doc_laudo: true,
     numero: '1007316-75.2025.8.11.0006',
