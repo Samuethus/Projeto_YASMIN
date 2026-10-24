@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<title>Testes do wizard</title>
+<!-- Abra no navegador: roda as regras contra os exemplos do manual RPV e percorre o fluxo com o processo de exemplo. -->
+<script>
+  window.__erros = [];
+  window.onerror = function (m, f, l) { window.__erros.push(m + ' @' + l); };
+  // Não sobrescreve o rascunho de análise real salvo neste navegador.
+  Storage.prototype.setItem = function () {}; Storage.prototype.getItem = function () { return null; };
+  window.alert = function () {}; window.confirm = function () { return true; }; window.print = function () {};
+</script>
+<link rel="stylesheet" href="wizard.css">
+<script src="regras.js"></script>
+<script src="wizard.js"></script>
+<script src="fluxo-rpv.js"></script>
+</head><body><pre id="out" style="font:13px/1.5 Consolas,monospace;padding:16px"></pre>
+<script>
+var out = [];
+function ok(nome, cond, info) { out.push((cond ? 'PASS ' : 'FAIL ') + nome + (info !== undefined ? '  -> ' + JSON.stringify(info) : '')); }
+var R = RegrasPrecatorio;
+try {
+  // Regras isoladas
+  var c = R.validarNumeroCnj('1007316-75.2025.8.11.0006'); ok('CNJ válido', c.ok && c.tjmt, c);
+  ok('CNJ DV errado', !R.validarNumeroCnj('1007316-74.2025.8.11.0006').ok);
+  ok('CPF válido', R.validarCpf('529.982.247-25'));
+  ok('CPF inválido', !R.validarCpf('529.982.247-24'));
+  ok('CNPJ válido (Estado MT)', R.validarCnpj('03.507.415/0005-78'));
+  ok('Manual 3.1.7: prazo final 10/07/2018', R.iso(R.prazoFinalRpv('2018-05-11')) === '2018-07-10', R.iso(R.prazoFinalRpv('2018-05-11')));
+  var per = R.periodos({ dataLiquidacao: '2018-03-12', dataCalculo: '2019-08-05', possuiOficio: true, dataRecebimentoOficio: '2018-05-11' });
+  ok('Manual 3.1.7: juros pós de 11/07/2018 a 05/08/2019 (390 dias)', R.iso(per.jurosPos.inicio) === '2018-07-11' && per.jurosPos.dias === 390, { inicio: R.iso(per.jurosPos.inicio), dias: per.jurosPos.dias });
+  ok('Manual 3.1.7: juros pré 60 dias', per.jurosPre.dias === 60, per.jurosPre.dias);
+  ok('Exercício precatório até 2/abr', R.exercicioPagamentoPrecatorio('2026-04-02') === 2027);
+  ok('Exercício precatório após 2/abr', R.exercicioPagamentoPrecatorio('2026-04-03') === 2028);
+  var a = R.estimarAtualizacao({ principal: 888.49, juros: 101.58, fatorCorrecao: '1,0931147', taxaJurosPre: '9,42' });
+  ok('Manual p.14 principal corrigido 971,22', a.principalCorrigido === 971.22, a);
+  ok('Manual p.14 juros corrigidos 111,04', a.jurosCorrigidos === 111.04);
+  ok('Manual p.14 total ~1.173,74', Math.abs(a.total - 1173.74) <= 0.02, a.total);
+  var tc = R.calcularTributos({ valorBruto: 15000, basePrevidencia: 15000, rpps: true, aliquotaPrevidencia: 11, tetoConstitucional: 'TC', tetoRgps: 6101.06, tipoPessoa: 'F' });
+  ok('Manual 3.2.1.1 TC previdência 978,88', tc.previdencia === 978.88, tc.previdencia);
+  var tc2 = R.calcularTributos({ valorBruto: 15000, basePrevidencia: 15000, rpps: true, aliquotaPrevidencia: 11, tetoConstitucional: 'TC2', tetoRgps: 6101.06, tipoPessoa: 'F' });
+  ok('Manual 3.2.1.2 TC2 previdência 307,77', tc2.previdencia === 307.77, tc2.previdencia);
+  var rra = R.calcularTributos({ valorBruto: 3000, rra: true, parcelasRra: 2, tipoPessoa: 'F' });
+  ok('Manual 3.2.2.3 RRA 2 meses IR 0', rra.irrf === 0, rra);
+  var alto = R.calcularTributos({ valorBruto: 60000, rra: true, parcelasRra: 6, tipoPessoa: 'F' });
+  ok('RRA 60k/6 meses: IR mensal 10k × 6', alto.irrf === R.arred((10000 * 0.275 - 908.73) * 6), alto.irrf);
+  var pj = R.calcularTributos({ valorBruto: 10000, tipoPessoa: 'J' });
+  ok('PJ não Simples 1,5%', pj.irrf === 150, pj.irrf);
+  var e = R.enquadrar({ valorAtualizado: 76582.63, tetoRpv: 26336, alimentar: true, preferencial: true });
+  ok('Exemplo é precatório', e.tipo === 'PRECATORIO', e);
+  ok('Exemplo superpreferência integral', e.superpreferencia === 76582.63 && e.restanteOrdem === 0);
+
+  // Fluxo completo com o processo de exemplo
+  WizardPrecatorio.abrir('rpv_srp');
+  document.querySelector('[data-acao="exemplo"]').click();
+  var st = WizardPrecatorio.estado();
+  st.dados.documento = '529.982.247-25';   // CPF fictício válido, só para o teste
+  st.dados.nascimento = '1971-11-11';
+  var etapas = st.fluxo.etapas;
+  for (var i = 0; i < etapas.length; i++) {
+    var titulo = document.getElementById('pw-titulo-etapa').textContent;
+    var val = document.querySelector('.pw-validacao').innerText.replace(/\s+/g, ' ');
+    var painel = document.querySelector('.pw-painel').innerText.replace(/\s+/g, ' ');
+    if (etapas[i].id === 'guias') {
+      var dirf = document.querySelector('[data-id="dirfCiente"]');
+      dirf.checked = true; dirf.dispatchEvent(new Event('change', { bubbles: true }));
+      val = document.querySelector('.pw-validacao').innerText.replace(/\s+/g, ' ');
+      painel = document.querySelector('.pw-form').innerText.replace(/\s+/g, ' ');
+    }
+    if (etapas[i].revisao) {
+      var resp = document.querySelector('[data-id="responsavel"]');
+      resp.value = 'Teste automatizado'; resp.dispatchEvent(new Event('input', { bubbles: true }));
+      val = document.querySelector('.pw-validacao').innerText.replace(/\s+/g, ' ');
+    }
+    out.push('\n=== Etapa ' + (i + 1) + ': ' + titulo + ' ===');
+    out.push('VALIDAÇÃO: ' + val);
+    if (painel) out.push('PAINEL: ' + painel.slice(0, 700));
+    var aprovar = document.getElementById('pw-aprovar');
+    if (aprovar.disabled) { out.push('FAIL aprovação bloqueada na etapa ' + (i + 1)); break; }
+    aprovar.checked = true; aprovar.dispatchEvent(new Event('change'));
+    var av = document.getElementById('pw-avancar');
+    ok('Avançar habilitado após aprovar (etapa ' + (i + 1) + ')', !av.disabled);
+    av.click();
+  }
+  ok('Análise concluída', !!WizardPrecatorio.estado().concluida);
+  var sintese = document.querySelector('.pw-sintese');
+  out.push('SÍNTESE: ' + (sintese ? sintese.innerText.replace(/\s+/g, ' ') : '—'));
+
+  // Edição após aprovação deve invalidar etapas seguintes
+  document.querySelector('[data-ir="1"]').click();
+  var num = document.querySelector('[data-id="numero"]');
+  num.value = '1007316-74.2025.8.11.0006'; num.dispatchEvent(new Event('input', { bubbles: true }));
+  ok('Edição desaprova etapa e seguintes', !WizardPrecatorio.estado().aprovadas.processo && !WizardPrecatorio.estado().aprovadas.revisao && !WizardPrecatorio.estado().concluida);
+  ok('DV inválido bloqueia aprovação', document.getElementById('pw-aprovar').disabled);
+  ok('Etapas seguintes bloqueadas no stepper', document.querySelector('[data-ir="3"]').disabled);
+  WizardPrecatorio.fechar();
+} catch (err) { out.push('EXCEPTION ' + err.message + '\n' + err.stack); }
+out.push('\nJS errors: ' + JSON.stringify(window.__erros));
+document.getElementById('out').textContent = out.join('\n');
+</script></body></html>

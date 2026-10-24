@@ -1,1 +1,5 @@
 .claude/settings.local.json
+
+# Autos de processos reais: contêm dados pessoais (CPF, endereço, dados bancários, saúde).
+# Nunca versionar. Mantenha os PDFs apenas localmente.
+processo/

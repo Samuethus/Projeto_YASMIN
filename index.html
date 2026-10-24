@@ -82,7 +82,9 @@
   .sidebar-cta {
     display: block; text-align: center; margin-top: 16px; padding: 12px; border-radius: 8px;
     background: var(--gold); color: var(--navy); font-weight: 600; font-size: 13px;
+    width: 100%; border: 0; cursor: pointer; font-family: var(--sans);
   }
+  .sidebar-cta:hover { background: var(--gold-soft); }
 
   .sidebar-toggle {
     display: none; position: fixed; left: 16px; bottom: 16px; z-index: 60;
@@ -325,6 +327,7 @@
     .reveal { opacity: 1; transform: none; transition: none; }
   }
 </style>
+<link rel="stylesheet" href="precatorio/wizard.css">
 </head>
 <body>
 
@@ -392,7 +395,7 @@
       <div class="ov-card"><svg class="icon"><use href="#i-mobile"/></svg><div><b>24/7</b>Support</div></div>
       <div class="ov-card wide"><svg class="icon"><use href="#i-shield"/></svg>Confidential &amp; Client-First</div>
     </div>
-    <a href="#consultation" class="sidebar-cta">Free Consultation</a>
+    <button type="button" class="sidebar-cta" data-precatorio>Precatório</button>
   </div>
 </aside>
 
@@ -423,7 +426,7 @@
           <a href="#blog">Resources</a>
           <a href="#contact">Contact</a>
         </nav>
-        <a href="#consultation" class="btn btn-dark">Free Consultation</a>
+        <button type="button" class="btn btn-dark" data-precatorio>Precatório</button>
       </div>
     </header>
 
@@ -435,7 +438,7 @@
         <p>We deliver strategic legal advice and representation to help you move forward with confidence.</p>
         <div class="actions">
           <a href="#practice" class="btn btn-dark">Our Practice Areas</a>
-          <a href="#consultation" class="btn btn-outline">Free Consultation</a>
+          <button type="button" class="btn btn-outline" data-precatorio>Precatório</button>
         </div>
       </div>
       <div class="hero-art" aria-hidden="true">
@@ -719,6 +722,9 @@
   </div>
 </main>
 
+<script src="precatorio/regras.js"></script>
+<script src="precatorio/wizard.js"></script>
+<script src="precatorio/fluxo-rpv.js"></script>
 <script>
   (function () {
     var body = document.body;
@@ -805,6 +811,11 @@
     });
 
     document.getElementById('year').textContent = new Date().getFullYear();
+
+    // "Precatório" buttons open the analysis wizard (precatorio/)
+    document.querySelectorAll('[data-precatorio]').forEach(function (btn) {
+      btn.addEventListener('click', function () { WizardPrecatorio.abrir('rpv_srp'); });
+    });
   })();
 </script>
 </body>
