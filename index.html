@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Justice &amp; Partners | Law Firm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0f1d36;
+    --navy-2: #16274a;
+    --navy-3: #22355c;
+    --gold: #c9a45c;
+    --gold-soft: #e6cf9f;
+    --ink: #1a2133;
+    --muted: #5d6679;
+    --line: #e4e7ee;
+    --bg: #f6f7fa;
+    --white: #ffffff;
+    --radius: 6px;
+    --sidebar-w: 300px;
+    --serif: "Cormorant Garamond", Georgia, serif;
+    --sans: "Inter", system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--sans); color: var(--ink); background: var(--bg); line-height: 1.6; font-size: 15px; }
+  a { color: inherit; text-decoration: none; }
+  img, svg { display: block; }
+  h1, h2, h3 { font-family: var(--serif); font-weight: 600; line-height: 1.15; color: var(--navy); }
+
+  .icon { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ---------- Floating sidebar ---------- */
+  .sidebar {
+    position: fixed; top: 16px; left: 16px; bottom: 16px; width: var(--sidebar-w);
+    background: var(--navy); color: #d7dceb; border-radius: 18px;
+    padding: 28px 24px; overflow-y: auto; z-index: 50;
+    box-shadow: 0 20px 50px rgba(15, 29, 54, .35);
+    transition: transform .35s ease;
+    scrollbar-width: thin; scrollbar-color: var(--navy-3) transparent;
+  }
+  .sidebar-brand { text-align: center; padding-bottom: 22px; border-bottom: 1px solid rgba(255,255,255,.1); }
+  .sidebar-brand .mono { font-family: var(--serif); font-size: 52px; color: var(--gold); line-height: 1; letter-spacing: -4px; }
+  .sidebar-brand .name { font-family: var(--serif); color: #fff; font-size: 17px; letter-spacing: 2px; margin-top: 6px; }
+  .sidebar-brand .tag { font-size: 10px; letter-spacing: 3px; color: #9aa4bd; }
+
+  .sidebar-intro { padding: 22px 0; border-bottom: 1px solid rgba(255,255,255,.1); }
+  .eyebrow { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); font-weight: 600; }
+  .sidebar-intro h2 { color: #fff; font-size: 34px; margin: 10px 0 4px; }
+  .sidebar-intro .sub { color: var(--gold); font-size: 15px; margin-bottom: 12px; }
+  .sidebar-intro p { font-size: 13px; color: #aeb6ca; }
+
+  .sidebar-nav { padding: 20px 0; }
+  .sidebar-nav ul { list-style: none; display: grid; gap: 6px; margin-top: 14px; }
+  .sidebar-nav a {
+    display: flex; gap: 14px; align-items: flex-start; padding: 8px; border-radius: 10px;
+    transition: background .2s;
+  }
+  .sidebar-nav a:hover, .sidebar-nav a.active { background: rgba(255,255,255,.06); }
+  .sidebar-nav a.active .nav-ico { border-color: var(--gold); color: var(--gold); }
+  .nav-ico {
+    flex: none; width: 40px; height: 40px; border: 1px solid rgba(255,255,255,.18); border-radius: 8px;
+    display: grid; place-items: center; color: #fff; transition: .2s;
+  }
+  .nav-txt strong { display: block; color: var(--gold-soft); font-size: 13px; font-weight: 600; }
+  .nav-txt span { font-size: 12px; color: #9aa4bd; line-height: 1.4; display: block; }
+
+  .sidebar-overview { padding-top: 18px; border-top: 1px solid rgba(255,255,255,.1); }
+  .overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .ov-card {
+    border: 1px solid rgba(255,255,255,.14); border-radius: 10px; padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px; font-size: 12px; color: #aeb6ca;
+  }
+  .ov-card b { display: block; color: #fff; font-size: 16px; font-family: var(--serif); }
+  .ov-card.wide { grid-column: span 2; color: #fff; }
+  .sidebar-cta {
+    display: block; text-align: center; margin-top: 16px; padding: 12px; border-radius: 8px;
+    background: var(--gold); color: var(--navy); font-weight: 600; font-size: 13px;
+  }
+
+  .sidebar-toggle {
+    display: none; position: fixed; left: 16px; bottom: 16px; z-index: 60;
+    width: 52px; height: 52px; border-radius: 50%; border: 0; cursor: pointer;
+    background: var(--gold); color: var(--navy); box-shadow: 0 10px 25px rgba(0,0,0,.25);
+    place-items: center;
+  }
+  .backdrop { display: none; position: fixed; inset: 0; background: rgba(10,18,35,.5); z-index: 40; }
+
+  /* ---------- Main ---------- */
+  .main { margin-left: calc(var(--sidebar-w) + 32px); padding: 16px 16px 16px 0; }
+  .page { background: var(--white); border-radius: 18px; overflow: hidden; box-shadow: 0 10px 40px rgba(15,29,54,.08); }
+  .container { max-width: 1120px; margin: 0 auto; padding: 0 40px; }
+  section { scroll-margin-top: 80px; }
+  .section { padding: 80px 0; }
+  .section-head { display: flex; justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 36px; flex-wrap: wrap; }
+  .section-head h2 { font-size: 38px; margin-top: 6px; }
+  .center { text-align: center; }
+  .center .section-head { justify-content: center; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 4px;
+    font-size: 13px; font-weight: 600; border: 1px solid transparent; cursor: pointer; transition: .2s;
+    font-family: var(--sans);
+  }
+  .btn-dark { background: var(--navy); color: #fff; }
+  .btn-dark:hover { background: var(--navy-3); }
+  .btn-outline { border-color: var(--gold); color: var(--navy); background: #fff; }
+  .btn-outline:hover { background: var(--gold); }
+  .btn-gold { background: var(--gold); color: var(--navy); }
+  .btn-ghost { border-color: rgba(255,255,255,.5); color: #fff; }
+  .btn-ghost:hover { background: #fff; color: var(--navy); }
+
+  /* Header */
+  .topbar { position: sticky; top: 0; z-index: 30; background: rgba(255,255,255,.95); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  .topbar .container { display: flex; align-items: center; justify-content: space-between; height: 72px; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo .mono { font-family: var(--serif); font-size: 32px; color: var(--navy); letter-spacing: -3px; line-height: 1; }
+  .logo .txt { font-family: var(--serif); font-size: 15px; font-weight: 700; color: var(--navy); line-height: 1.1; letter-spacing: 1px; }
+  .logo .txt small { display: block; font-family: var(--sans); font-size: 9px; letter-spacing: 3px; color: var(--muted); font-weight: 500; }
+  .topnav { display: flex; gap: 26px; font-size: 13px; font-weight: 500; }
+  .topnav a:hover { color: var(--gold); }
+
+  /* Hero */
+  .hero { position: relative; display: grid; grid-template-columns: 1fr 1fr; min-height: 520px; background: linear-gradient(120deg, #fff 45%, #eef1f6 45%); }
+  .hero-copy { padding: 80px 40px 80px 64px; align-self: center; }
+  .hero-copy h1 { font-size: 58px; margin: 12px 0 20px; }
+  .hero-copy p { color: var(--muted); max-width: 420px; margin-bottom: 30px; }
+  .hero-copy .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  .hero-art { position: relative; overflow: hidden; background: linear-gradient(180deg, #dfe4ec 0%, #c3cbd8 100%); clip-path: polygon(18% 0, 100% 0, 100% 100%, 0 100%); }
+  .hero-art svg { position: absolute; bottom: 0; right: 0; width: 100%; height: 100%; }
+
+  .stats { background: var(--navy); color: #fff; }
+  .stats .container { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .stat { padding: 34px 20px; text-align: center; border-right: 1px solid rgba(255,255,255,.12); }
+  .stat:last-child { border-right: 0; }
+  .stat b { font-family: var(--serif); font-size: 44px; font-weight: 600; display: block; line-height: 1; }
+  .stat span { font-size: 13px; color: #b9c1d4; }
+
+  /* Cards */
+  .grid-6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 26px 18px; text-align: center; transition: .25s; }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(15,29,54,.08); border-color: var(--gold-soft); }
+  .card .icon { width: 34px; height: 34px; margin: 0 auto 14px; color: var(--navy); }
+  .card h3 { font-size: 20px; margin-bottom: 8px; }
+  .card p { font-size: 12.5px; color: var(--muted); }
+
+  /* About split */
+  .split { display: grid; grid-template-columns: 1fr 1fr; background: #eef1f6; }
+  .split-art { min-height: 380px; background: radial-gradient(circle at 30% 40%, #5b4632 0%, #2b2018 55%, #18120d 100%); position: relative; }
+  .split-art svg { position: absolute; inset: 0; margin: auto; width: 70%; height: 70%; }
+  .split-copy { padding: 70px 64px; align-self: center; }
+  .split-copy h2 { font-size: 40px; margin: 10px 0 18px; }
+  .split-copy p { color: var(--muted); margin-bottom: 26px; }
+
+  /* CTA band */
+  .cta-band { background: var(--navy); color: #fff; }
+  .cta-band .container { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-top: 40px; padding-bottom: 40px; flex-wrap: wrap; }
+  .cta-band h2 { color: #fff; font-size: 36px; }
+  .cta-band p { color: #b9c1d4; font-size: 14px; }
+
+  /* Attorneys */
+  .person { text-align: center; }
+  .avatar { aspect-ratio: 4/4.4; border-radius: var(--radius); background: linear-gradient(180deg, #e9ecf2, #cfd6e2); position: relative; overflow: hidden; margin-bottom: 14px; }
+  .avatar svg { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 78%; }
+  .person h3 { font-size: 21px; }
+  .person span { font-size: 13px; color: var(--muted); }
+
+  /* Results */
+  .results { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .result { border: 1px solid var(--line); border-radius: var(--radius); padding: 26px; background: #fff; }
+  .result b { font-family: var(--serif); font-size: 40px; color: var(--navy); display: block; line-height: 1.1; }
+  .result small { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); font-weight: 600; }
+  .result p { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+  /* Consultation */
+  .consult { display: grid; grid-template-columns: 1.5fr 1fr; gap: 28px; }
+  form { display: grid; gap: 14px; }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  label { font-size: 12px; font-weight: 600; color: var(--navy); display: grid; gap: 6px; }
+  input, select, textarea {
+    font: inherit; font-size: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 4px; background: #fff; color: var(--ink);
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--gold-soft); border-color: var(--gold); }
+  textarea { min-height: 120px; resize: vertical; }
+  .aside-box { background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; }
+  .aside-box h3 { font-size: 24px; margin-bottom: 16px; }
+  .steps { list-style: none; display: grid; gap: 16px; counter-reset: s; }
+  .steps li { counter-increment: s; display: flex; gap: 12px; font-size: 13.5px; color: var(--muted); }
+  .steps li::before { content: counter(s); flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--navy); color: var(--gold); display: grid; place-items: center; font-size: 12px; font-weight: 600; }
+  .phone { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+  .phone b { font-family: var(--serif); font-size: 26px; color: var(--navy); }
+  .form-msg { font-size: 13px; color: #1f7a4a; display: none; }
+
+  /* Blog */
+  .post { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: #fff; display: flex; flex-direction: column; }
+  .post-img { height: 170px; }
+  .post-body { padding: 22px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .post-body small { color: var(--gold); font-weight: 600; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; }
+  .post-body h3 { font-size: 22px; }
+  .post-body p { font-size: 13px; color: var(--muted); flex: 1; }
+  .post-body a { font-size: 13px; font-weight: 600; color: var(--navy); }
+  .post-body a:hover { color: var(--gold); }
+
+  /* FAQ */
+  .faq { max-width: 760px; margin: 0 auto; display: grid; gap: 10px; }
+  details { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; }
+  summary { padding: 18px 22px; cursor: pointer; font-weight: 600; font-size: 14.5px; color: var(--navy); list-style: none; display: flex; justify-content: space-between; align-items: center; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; font-size: 20px; color: var(--gold); transition: transform .2s; }
+  details[open] summary::after { transform: rotate(45deg); }
+  details p { padding: 0 22px 18px; color: var(--muted); font-size: 14px; }
+
+  /* Testimonials */
+  .testimonial { background: var(--bg); }
+  .stars { color: var(--gold); letter-spacing: 3px; }
+  blockquote { font-family: var(--serif); font-size: 26px; color: var(--navy); max-width: 760px; margin: 16px auto; line-height: 1.4; }
+  .cite { font-size: 13px; color: var(--muted); }
+  .press { display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 24px; margin-top: 50px; color: #4a5368; font-family: var(--serif); font-size: 26px; font-weight: 700; }
+  .press span:nth-child(2) { font-family: var(--sans); font-size: 17px; line-height: 1.1; }
+  .press span:nth-child(4) { font-family: var(--sans); font-size: 18px; font-weight: 500; letter-spacing: 1px; }
+  .press span:nth-child(5) { font-style: italic; font-weight: 500; }
+
+  /* Contact */
+  .contact { display: grid; grid-template-columns: 1fr 1.4fr; gap: 28px; }
+  .info-list { list-style: none; display: grid; gap: 18px; }
+  .info-list li { display: flex; gap: 14px; }
+  .info-list .nav-ico { border-color: var(--line); color: var(--navy); }
+  .info-list b { display: block; font-size: 13px; color: var(--navy); }
+  .info-list span { font-size: 13.5px; color: var(--muted); }
+  .map { margin-top: 22px; height: 180px; border-radius: var(--radius); border: 1px solid var(--line);
+    background:
+      linear-gradient(90deg, transparent 48%, #fff 48%, #fff 52%, transparent 52%),
+      linear-gradient(0deg, transparent 46%, #fff 46%, #fff 50%, transparent 50%),
+      linear-gradient(35deg, transparent 60%, #fff 60%, #fff 63%, transparent 63%),
+      #e3e8f0;
+    position: relative; }
+  .map::after { content: ""; position: absolute; left: 50%; top: 46%; width: 18px; height: 18px; background: var(--gold); border: 3px solid var(--navy); border-radius: 50% 50% 50% 0; transform: translate(-50%, -100%) rotate(-45deg); }
+
+  /* Footer */
+  footer { background: var(--navy); color: #aeb6ca; padding: 56px 0 24px; font-size: 13px; }
+  .foot-grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 30px; }
+  footer .logo .mono, footer .logo .txt { color: #fff; }
+  footer .logo .mono { color: var(--gold); }
+  footer h4 { color: #fff; font-size: 13px; margin-bottom: 12px; letter-spacing: 1px; }
+  footer ul { list-style: none; display: grid; gap: 8px; }
+  footer a:hover { color: var(--gold); }
+  .copy { border-top: 1px solid rgba(255,255,255,.1); margin-top: 40px; padding-top: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+
+  .reveal { opacity: 0; transform: translateY(20px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 1280px) {
+    .grid-6 { grid-template-columns: repeat(3, 1fr); }
+    .topnav { display: none; }
+  }
+  @media (max-width: 1080px) {
+    .sidebar { transform: translateX(calc(-100% - 24px)); }
+    body.menu-open .sidebar { transform: none; }
+    body.menu-open .backdrop { display: block; }
+    .sidebar-toggle { display: grid; }
+    .main { margin-left: 0; padding: 0; }
+    .page { border-radius: 0; }
+    .hero, .split, .consult, .contact { grid-template-columns: 1fr; }
+    .hero { background: #fff; }
+    .hero-art { min-height: 320px; clip-path: none; }
+    .hero-copy { padding: 60px 40px; }
+    .results { grid-template-columns: repeat(2, 1fr); }
+    .foot-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 640px) {
+    .container { padding: 0 16px; }
+    .hero-copy { padding: 48px 16px; }
+    .hero-copy h1 { font-size: 40px; }
+    .section { padding: 56px 0; }
+    .section-head h2, .split-copy h2 { font-size: 30px; }
+    .split-copy { padding: 48px 16px; }
+    .stats .container { grid-template-columns: repeat(2, 1fr); }
+    .stat:nth-child(2) { border-right: 0; }
+    .grid-6 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3, .results, .row-2, .foot-grid { grid-template-columns: 1fr; }
+    .topbar .btn { display: none; }
+    blockquote { font-size: 21px; }
+    .sidebar { width: calc(100% - 32px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .reveal { opacity: 1; transform: none; transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v18M7 21h10M5 7h14M12 5l-7 2M12 5l7 2M5 7l-3 7a3 3 0 0 0 6 0L5 7zM19 7l-3 7a3 3 0 0 0 6 0l-3-7z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7M5 10v10h14V10"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5h.01"/></symbol>
+  <symbol id="i-brief" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/></symbol>
+  <symbol id="i-family" viewBox="0 0 24 24"><circle cx="8" cy="7" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.3-4.5 3-4.5s3.5 1.5 4 4.5"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5M9 8h3"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+  <symbol id="i-mobile" viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="i-person" viewBox="0 0 120 120"><circle cx="60" cy="38" r="22" fill="#3b4a66" stroke="none"/><path d="M14 120c0-28 20-48 46-48s46 20 46 48z" fill="#0f1d36" stroke="none"/><path d="M52 74l8 18 8-18" fill="#fff" stroke="none"/><path d="M58 80h4l2 22-4 6-4-6z" fill="#c9a45c" stroke="none"/></symbol>
+</svg>
+
+<!-- Floating sidebar menu -->
+<aside class="sidebar" id="sidebar" aria-label="Site menu">
+  <div class="sidebar-brand">
+    <div class="mono">JP</div>
+    <div class="name">JUSTICE &amp; PARTNERS</div>
+    <div class="tag">LAW FIRM</div>
+  </div>
+
+  <div class="sidebar-intro">
+    <div class="eyebrow">Modern Law Firm</div>
+    <h2>Justice &amp; Partners</h2>
+    <div class="sub">Law Firm &amp; Legal Services</div>
+    <p>Building trust, establishing credibility and providing seamless access to legal services with clarity, professionalism and care.</p>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="eyebrow">Navigate</div>
+    <ul>
+      <li><a href="#home"><span class="nav-ico"><svg class="icon"><use href="#i-home"/></svg></span><span class="nav-txt"><strong>Home</strong><span>Back to the top of the page.</span></span></a></li>
+      <li><a href="#practice"><span class="nav-ico"><svg class="icon"><use href="#i-scale"/></svg></span><span class="nav-txt"><strong>Practice Areas</strong><span>Explore all legal practice details and expertise.</span></span></a></li>
+      <li><a href="#about"><span class="nav-ico"><svg class="icon"><use href="#i-info"/></svg></span><span class="nav-txt"><strong>About Us</strong><span>Our story, mission and values.</span></span></a></li>
+      <li><a href="#attorneys"><span class="nav-ico"><svg class="icon"><use href="#i-user"/></svg></span><span class="nav-txt"><strong>Attorney Profiles</strong><span>Meet our experienced legal professionals.</span></span></a></li>
+      <li><a href="#results"><span class="nav-ico"><svg class="icon"><use href="#i-trend"/></svg></span><span class="nav-txt"><strong>Case Results</strong><span>Proven track record of successful outcomes.</span></span></a></li>
+      <li><a href="#consultation"><span class="nav-ico"><svg class="icon"><use href="#i-chat"/></svg></span><span class="nav-txt"><strong>Free Consultation</strong><span>Book a consultation with ease.</span></span></a></li>
+      <li><a href="#blog"><span class="nav-ico"><svg class="icon"><use href="#i-doc"/></svg></span><span class="nav-txt"><strong>Resources &amp; Blog</strong><span>Stay informed with legal insights and updates.</span></span></a></li>
+      <li><a href="#faq"><span class="nav-ico"><svg class="icon"><use href="#i-help"/></svg></span><span class="nav-txt"><strong>FAQ</strong><span>Answers to common questions.</span></span></a></li>
+      <li><a href="#contact"><span class="nav-ico"><svg class="icon"><use href="#i-pin"/></svg></span><span class="nav-txt"><strong>Contact &amp; Location</strong><span>Multiple ways to get in touch with us.</span></span></a></li>
+    </ul>
+  </nav>
+
+  <div class="sidebar-overview">
+    <div class="eyebrow">Firm Overview</div>
+    <div class="overview-grid">
+      <div class="ov-card"><svg class="icon"><use href="#i-layers"/></svg><div><b>12</b>Practice Areas</div></div>
+      <div class="ov-card"><svg class="icon"><use href="#i-mobile"/></svg><div><b>24/7</b>Support</div></div>
+      <div class="ov-card wide"><svg class="icon"><use href="#i-shield"/></svg>Confidential &amp; Client-First</div>
+    </div>
+    <a href="#consultation" class="sidebar-cta">Free Consultation</a>
+  </div>
+</aside>
+
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
+  <svg class="icon"><use href="#i-menu"/></svg>
+</button>
+<div class="backdrop" id="backdrop"></div>
+
+<main class="main">
+  <div class="page">
+
+    <header class="topbar">
+      <div class="container">
+        <a href="#home" class="logo">
+          <span class="mono">JP</span>
+          <span class="txt">JUSTICE &amp; PARTNERS<small>LAW FIRM</small></span>
+        </a>
+        <nav class="topnav">
+          <a href="#home">Home</a>
+          <a href="#about">About Us</a>
+          <a href="#practice">Practice Areas</a>
+          <a href="#attorneys">Attorneys</a>
+          <a href="#results">Case Results</a>
+          <a href="#blog">Resources</a>
+          <a href="#contact">Contact</a>
+        </nav>
+        <a href="#consultation" class="btn btn-dark">Free Consultation</a>
+      </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero" id="home">
+      <div class="hero-copy">
+        <div class="eyebrow">Your Rights. Our Commitment.</div>
+        <h1>Trusted Legal Solutions for You and Your Business</h1>
+        <p>We deliver strategic legal advice and representation to help you move forward with confidence.</p>
+        <div class="actions">
+          <a href="#practice" class="btn btn-dark">Our Practice Areas</a>
+          <a href="#consultation" class="btn btn-outline">Free Consultation</a>
+        </div>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <svg viewBox="0 0 600 520" preserveAspectRatio="xMidYMax slice">
+          <defs>
+            <linearGradient id="col" x1="0" x2="1">
+              <stop offset="0" stop-color="#9aa4b4"/><stop offset=".45" stop-color="#f4f5f8"/><stop offset="1" stop-color="#8c96a8"/>
+            </linearGradient>
+            <linearGradient id="stone" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#e9ecf1"/><stop offset="1" stop-color="#b6bfcc"/>
+            </linearGradient>
+          </defs>
+          <polygon points="90,150 360,60 630,150" fill="url(#stone)" stroke="#9aa4b4"/>
+          <polygon points="140,140 360,78 580,140" fill="#d3d9e2"/>
+          <rect x="80" y="150" width="560" height="26" fill="#e3e7ed"/>
+          <rect x="80" y="176" width="560" height="12" fill="#c4ccd7"/>
+          <g fill="url(#col)">
+            <rect x="105" y="190" width="34" height="260"/><rect x="170" y="190" width="34" height="260"/>
+            <rect x="235" y="190" width="34" height="260"/><rect x="300" y="190" width="34" height="260"/>
+            <rect x="365" y="190" width="34" height="260"/><rect x="430" y="190" width="34" height="260"/>
+            <rect x="495" y="190" width="34" height="260"/><rect x="560" y="190" width="34" height="260"/>
+          </g>
+          <rect x="70" y="450" width="580" height="16" fill="#d9dee6"/>
+          <rect x="50" y="466" width="620" height="18" fill="#c8cfd9"/>
+          <rect x="30" y="484" width="660" height="40" fill="#b9c1cd"/>
+        </svg>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="container">
+        <div class="stat"><b data-count="20" data-suffix="+">20+</b><span>Years of Experience</span></div>
+        <div class="stat"><b data-count="500" data-suffix="+">500+</b><span>Cases Won</span></div>
+        <div class="stat"><b data-count="98" data-suffix="%">98%</b><span>Client Satisfaction</span></div>
+        <div class="stat"><b data-count="12" data-suffix="">12</b><span>Practice Areas</span></div>
+      </div>
+    </section>
+
+    <!-- Practice areas -->
+    <section class="section" id="practice">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Our Practice Areas</div>
+            <h2>Comprehensive Legal Services</h2>
+          </div>
+          <a href="#contact" class="btn btn-outline">View All Areas</a>
+        </div>
+        <div class="grid-6">
+          <article class="card reveal"><svg class="icon"><use href="#i-brief"/></svg><h3>Business Law</h3><p>Corporate formation, contracts, compliance &amp; more.</p></article>
+          <article class="card reveal"><svg class="icon"><use href="#i-family"/></svg><h3>Family Law</h3><p>Divorce, child custody, support and family disputes.</p></article>
+          <article class="card reveal"><svg class="icon"><use href="#i-shield"/></svg><h3>Criminal Defense</h3><p>Aggressive defense for individuals and their future.</p></article>
+          <article class="card reveal"><svg class="icon"><use href="#i-heart"/></svg><h3>Personal Injury</h3><p>Seeking justice for accidents and injury victims.</p></article>
+          <article class="card reveal"><svg class="icon"><use href="#i-building"/></svg><h3>Real Estate Law</h3><p>Property transactions, leasing and real estate disputes.</p></article>
+          <article class="card reveal"><svg class="icon"><use href="#i-file"/></svg><h3>Estate Planning</h3><p>Wills, trusts and estate planning for your peace of mind.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <!-- About -->
+    <section class="split" id="about">
+      <div class="split-art" aria-hidden="true">
+        <svg viewBox="0 0 300 220">
+          <ellipse cx="150" cy="200" rx="120" ry="12" fill="#0c0805" opacity=".6"/>
+          <rect x="60" y="168" width="180" height="26" rx="4" fill="#6b4a2b"/>
+          <rect x="70" y="160" width="160" height="10" rx="3" fill="#8a6038"/>
+          <g transform="rotate(-28 150 100)">
+            <rect x="140" y="40" width="20" height="120" rx="6" fill="#7a5230"/>
+            <rect x="95" y="20" width="110" height="44" rx="14" fill="#5a3a20"/>
+            <rect x="95" y="30" width="110" height="8" fill="#c9a45c"/>
+            <rect x="95" y="46" width="110" height="8" fill="#c9a45c"/>
+          </g>
+        </svg>
+      </div>
+      <div class="split-copy">
+        <div class="eyebrow">About Us</div>
+        <h2>Dedicated to Justice.<br>Driven by Results.</h2>
+        <p>At Justice &amp; Partners, we combine legal expertise with a client-first approach. Our attorneys are committed to providing personalized solutions and achieving the best possible outcomes.</p>
+        <a href="#attorneys" class="btn btn-dark">Learn More About Us</a>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <div class="container">
+        <div>
+          <h2>Need Legal Help? Let's Talk.</h2>
+          <p>Schedule your free consultation today.</p>
+        </div>
+        <a href="#consultation" class="btn btn-ghost">Book a Consultation</a>
+      </div>
+    </section>
+
+    <!-- Attorneys -->
+    <section class="section" id="attorneys">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Our Team</div>
+            <h2>Attorneys</h2>
+          </div>
+        </div>
+        <div class="grid-3">
+          <div class="person reveal"><div class="avatar"><svg viewBox="0 0 120 120"><use href="#i-person"/></svg></div><h3>John R. Williams</h3><span>Managing Partner</span></div>
+          <div class="person reveal"><div class="avatar"><svg viewBox="0 0 120 120"><use href="#i-person"/></svg></div><h3>Amanda L. Brown</h3><span>Senior Attorney</span></div>
+          <div class="person reveal"><div class="avatar"><svg viewBox="0 0 120 120"><use href="#i-person"/></svg></div><h3>Michael T. Johnson</h3><span>Senior Attorney</span></div>
+          <div class="person reveal"><div class="avatar"><svg viewBox="0 0 120 120"><use href="#i-person"/></svg></div><h3>Sarah K. Davis</h3><span>Associate Attorney</span></div>
+          <div class="person reveal"><div class="avatar"><svg viewBox="0 0 120 120"><use href="#i-person"/></svg></div><h3>David P. Wilson</h3><span>Associate Attorney</span></div>
+          <div class="person reveal"><div class="avatar"><svg viewBox="0 0 120 120"><use href="#i-person"/></svg></div><h3>Emily J. Thompson</h3><span>Associate Attorney</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Case results -->
+    <section class="section" id="results" style="background: var(--bg);">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Track Record</div>
+            <h2>Case Results</h2>
+          </div>
+        </div>
+        <div class="results">
+          <div class="result reveal"><b>$2.4M</b><small>Personal Injury</small><p>Settlement for a client injured in a commercial vehicle accident.</p></div>
+          <div class="result reveal"><b>$1.8M</b><small>Business Law</small><p>Recovered damages in a breach of contract dispute.</p></div>
+          <div class="result reveal"><b>$950K</b><small>Real Estate</small><p>Favorable verdict in a complex property dispute.</p></div>
+          <div class="result reveal"><b>$700K</b><small>Employment</small><p>Wrongful termination claim resolved for our client.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Consultation -->
+    <section class="section" id="consultation">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Let's Discuss Your Case</div>
+            <h2>Free Consultation</h2>
+          </div>
+        </div>
+        <div class="consult">
+          <form id="consultForm" novalidate>
+            <div class="row-2">
+              <label>Full Name<input name="name" required autocomplete="name"></label>
+              <label>Email Address<input type="email" name="email" required autocomplete="email"></label>
+            </div>
+            <div class="row-2">
+              <label>Phone Number<input type="tel" name="phone" autocomplete="tel"></label>
+              <label>Practice Area
+                <select name="area">
+                  <option>Business Law</option><option>Family Law</option><option>Criminal Defense</option>
+                  <option>Personal Injury</option><option>Real Estate Law</option><option>Estate Planning</option>
+                </select>
+              </label>
+            </div>
+            <label>Message<textarea name="message" placeholder="Briefly describe your situation"></textarea></label>
+            <div><button type="submit" class="btn btn-dark">Submit Request</button></div>
+            <p class="form-msg" id="formMsg">Thank you! Our team will contact you within one business day.</p>
+          </form>
+          <div class="aside-box">
+            <h3>What Happens Next?</h3>
+            <ol class="steps">
+              <li>We review your request and the details of your case.</li>
+              <li>An attorney contacts you to schedule a meeting.</li>
+              <li>We discuss your options and the best strategy forward.</li>
+            </ol>
+            <div class="phone">
+              <div class="eyebrow">Call Us Directly</div>
+              <b>(123) 456-7890</b>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="section testimonial center">
+      <div class="container">
+        <div class="eyebrow">What Our Clients Say <span class="stars">★★★★★</span></div>
+        <blockquote>"Justice &amp; Partners provided outstanding guidance and support throughout my case. Their professionalism and dedication exceeded my expectations."</blockquote>
+        <div class="cite">— Sarah J., Client</div>
+        <div class="press">
+          <span>Forbes</span><span>Bloomberg<br>Law</span><span>LEGAL<br>500</span><span>LAW.COM</span><span>Super Lawyers</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Blog -->
+    <section class="section" id="blog">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Insights</div>
+            <h2>Resources &amp; Blog</h2>
+          </div>
+          <a href="#blog" class="btn btn-outline">View All Articles</a>
+        </div>
+        <div class="grid-3">
+          <article class="post reveal">
+            <div class="post-img" style="background: linear-gradient(135deg, #2b3a58, #0f1d36);"></div>
+            <div class="post-body"><small>Personal Injury</small><h3>Understanding Your Rights in a Car Accident</h3><p>What to do in the first hours after an accident and how to protect your claim.</p><a href="#blog">Read More →</a></div>
+          </article>
+          <article class="post reveal">
+            <div class="post-img" style="background: linear-gradient(135deg, #c9a45c, #7a5a2c);"></div>
+            <div class="post-body"><small>Business Law</small><h3>How to Protect Your Business Legally</h3><p>Key contracts, structures and policies every growing company should have.</p><a href="#blog">Read More →</a></div>
+          </article>
+          <article class="post reveal">
+            <div class="post-img" style="background: linear-gradient(135deg, #8d97aa, #3b4a66);"></div>
+            <div class="post-body"><small>Estate Planning</small><h3>Estate Planning Basics: What You Need to Know</h3><p>Wills, trusts and the decisions that give your family peace of mind.</p><a href="#blog">Read More →</a></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section" id="faq" style="background: var(--bg);">
+      <div class="container">
+        <div class="section-head center" style="justify-content:center; text-align:center;">
+          <div>
+            <div class="eyebrow">Have Questions?</div>
+            <h2>Frequently Asked Questions</h2>
+          </div>
+        </div>
+        <div class="faq">
+          <details open><summary>How do I schedule a consultation?</summary><p>Fill out the form on this page or call us at (123) 456-7890. We respond within one business day.</p></details>
+          <details><summary>What types of cases do you handle?</summary><p>We cover business, family, criminal defense, personal injury, real estate, estate planning and more — 12 practice areas in total.</p></details>
+          <details><summary>How much do your services cost?</summary><p>Your first consultation is free. Fees depend on the case and may be hourly, flat-fee or contingency based.</p></details>
+          <details><summary>Do you offer payment plans?</summary><p>Yes. We offer flexible payment arrangements tailored to each client's situation.</p></details>
+          <details><summary>How long will my case take?</summary><p>Every case is different. During your consultation we'll give you a realistic timeline based on the specifics.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact -->
+    <section class="section" id="contact">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Get in Touch</div>
+            <h2>Contact Us</h2>
+          </div>
+        </div>
+        <div class="contact">
+          <div>
+            <ul class="info-list">
+              <li><span class="nav-ico"><svg class="icon"><use href="#i-phone"/></svg></span><div><b>Phone</b><span>(123) 456-7890</span></div></li>
+              <li><span class="nav-ico"><svg class="icon"><use href="#i-mail"/></svg></span><div><b>Email</b><span>info@justicepartners.com</span></div></li>
+              <li><span class="nav-ico"><svg class="icon"><use href="#i-pin"/></svg></span><div><b>Address</b><span>123 Justice Street, New York, NY 10001</span></div></li>
+              <li><span class="nav-ico"><svg class="icon"><use href="#i-clock"/></svg></span><div><b>Office Hours</b><span>Mon – Fri, 9:00 AM – 6:00 PM</span></div></li>
+            </ul>
+            <div class="map" role="img" aria-label="Office location map"></div>
+          </div>
+          <form id="contactForm" novalidate>
+            <div class="row-2">
+              <label>Full Name<input name="name" required autocomplete="name"></label>
+              <label>Email Address<input type="email" name="email" required autocomplete="email"></label>
+            </div>
+            <label>Subject<input name="subject"></label>
+            <label>Message<textarea name="message"></textarea></label>
+            <div><button type="submit" class="btn btn-dark">Send Message</button></div>
+            <p class="form-msg">Message sent. We'll be in touch shortly.</p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="container">
+        <div class="foot-grid">
+          <div>
+            <a href="#home" class="logo"><span class="mono">JP</span><span class="txt">JUSTICE &amp; PARTNERS<small>LAW FIRM</small></span></a>
+            <p style="margin-top:16px; max-width:300px;">Strategic legal advice and representation for individuals and businesses.</p>
+          </div>
+          <div><h4>Firm</h4><ul><li><a href="#about">About Us</a></li><li><a href="#attorneys">Attorneys</a></li><li><a href="#results">Case Results</a></li></ul></div>
+          <div><h4>Services</h4><ul><li><a href="#practice">Practice Areas</a></li><li><a href="#consultation">Free Consultation</a></li><li><a href="#blog">Resources</a></li></ul></div>
+          <div><h4>Help</h4><ul><li><a href="#faq">FAQ</a></li><li><a href="#contact">Contact</a></li><li><a href="#">Privacy Policy</a></li></ul></div>
+        </div>
+        <div class="copy"><span>© <span id="year">2026</span> Justice &amp; Partners. All rights reserved.</span><span>Designed with care.</span></div>
+      </div>
+    </footer>
+
+  </div>
+</main>
+
+<script>
+  (function () {
+    var body = document.body;
+    var toggle = document.getElementById('sidebarToggle');
+    var backdrop = document.getElementById('backdrop');
+
+    function setMenu(open) {
+      body.classList.toggle('menu-open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+    }
+    toggle.addEventListener('click', function () { setMenu(!body.classList.contains('menu-open')); });
+    backdrop.addEventListener('click', function () { setMenu(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setMenu(false); });
+    document.querySelectorAll('.sidebar-nav a, .sidebar-cta').forEach(function (a) {
+      a.addEventListener('click', function () { setMenu(false); });
+    });
+
+    // Highlight the sidebar item of the section in view
+    var links = Array.prototype.slice.call(document.querySelectorAll('.sidebar-nav a'));
+    var sections = links.map(function (a) { return document.querySelector(a.getAttribute('href')); });
+    var spy = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) { a.classList.toggle('active', a.getAttribute('href') === '#' + entry.target.id); });
+      });
+    }, { rootMargin: '-45% 0px -50% 0px' });
+    sections.forEach(function (s) { if (s) spy.observe(s); });
+
+    // Reveal on scroll
+    var reveal = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) { entry.target.classList.add('in'); reveal.unobserve(entry.target); }
+      });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.reveal').forEach(function (el) { reveal.observe(el); });
+
+    // Animated stat counters
+    var counters = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        var el = entry.target, target = +el.dataset.count, suffix = el.dataset.suffix, start = null;
+        function step(t) {
+          if (!start) start = t;
+          var p = Math.min((t - start) / 1200, 1);
+          el.textContent = Math.round(target * p) + suffix;
+          if (p < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+        counters.unobserve(el);
+      });
+    }, { threshold: 0.6 });
+    document.querySelectorAll('[data-count]').forEach(function (el) { counters.observe(el); });
+
+    // Forms: basic validation + confirmation message (no backend yet)
+    document.querySelectorAll('form').forEach(function (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!form.checkValidity()) { form.reportValidity(); return; }
+        form.querySelector('.form-msg').style.display = 'block';
+        form.reset();
+      });
+    });
+
+    document.getElementById('year').textContent = new Date().getFullYear();
+  })();
+</script>
+</body>
+</html>
